@@ -1,10 +1,9 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text;
 using System.Threading.Tasks;
+using AutoMapper;
 using InstagramApiSharp.API;
-using InstagramApiSharp.API.Builder;
 using InstagramApiSharp.Classes;
 using InstagramDMSender.Models;
 
@@ -13,47 +12,68 @@ namespace InstagramDMSender.ApiWrapper
     public class ApiWrapper : IApiWrapper
     {
         private IInstaApi instaApi;
+        private IMapper mapper;
 
-        public IEnumerable<User> GetFollowers(long userId)
+        public ApiWrapper(IInstaApi instaApi, IMapper mapper)
         {
-            throw new NotImplementedException();
+            this.instaApi = instaApi;
+            this.mapper = mapper;
         }
 
-        public IEnumerable<User> GetFollowersForLoggedInUser()
+        public async Task<IEnumerable<User>> GetFollowersAsync(long userId)
         {
-            throw new NotImplementedException();
+            var followers = await instaApi.UserProcessor.GetUserFollowersByIdAsync(userId, InstagramApiSharp.PaginationParameters.Empty);
+            if (followers.Succeeded)
+                return followers.Value.Select(a => new User
+                {
+                    UserId = a.Pk,
+                    UserName = a.UserName,
+                    Private = a.IsPrivate
+                });
+            return new List<User>();
         }
 
-        public User GetLoggedInUser()
+        public async Task<IEnumerable<User>> GetFollowersForLoggedInUserAsync()
         {
-            throw new NotImplementedException();
+            var followers = await instaApi.UserProcessor.GetCurrentUserFollowersAsync(InstagramApiSharp.PaginationParameters.Empty);
+            if (followers.Succeeded)
+                return followers.Value.Select(a => mapper.Map<User>(a));
+            return new List<User>();
         }
 
-        public User GetUser(long userId)
+        public async Task<User> GetLoggedInUserAsync()
         {
-            throw new NotImplementedException();
+            var currentUser = await instaApi.GetCurrentUserAsync();
+
+            return mapper.Map<User>(currentUser.Value);
+        }
+
+        public async Task<User> GetUserByIdAsync(long userId)
+        {
+            var user = await instaApi.UserProcessor.GetUserInfoByIdAsync(userId);
+
+            return mapper.Map<User>(user.Value);
+        }
+
+        public async Task<User> GetUserByNameAsync(string userName)
+        {
+            var user = await instaApi.UserProcessor.GetUserAsync(userName);
+
+            return new User
+            {
+                UserName = user.Value.UserName,
+                UserId = user.Value.Pk,
+                Private = user.Value.IsPrivate
+            };
         }
 
         public async Task<bool> LoginAsync(string userName, string password)
         {
-            instaApi = CreateApiHandler(userName, password);
+            instaApi.SetUser(userName, password);
 
             var loginResponse = await instaApi.LoginAsync();
 
             return loginResponse.Succeeded;
-        }
-
-        private IInstaApi CreateApiHandler(string userName, string password)
-        {
-            var loginCredentials = new UserSessionData
-            {
-                UserName = userName,
-                Password = password
-            };
-
-            var instagramApi = InstaApiBuilder.CreateBuilder().SetUser(loginCredentials).Build();
-
-            return instagramApi;
         }
     }
 }

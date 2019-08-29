@@ -4,6 +4,7 @@ using InstagramApiSharp.API.Builder;
 using InstagramApiSharp.Classes;
 using InstagramApiSharp.Classes.Models;
 using InstagramDMSender.ApiWrapper;
+using InstagramDMSender.Models;
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
@@ -19,13 +20,13 @@ namespace InstagramDMSender
     /// </summary>
     public partial class MainWindow : Window
     {
-        private long userId;
+        private User loggedUser;
         private IApiWrapper instaApi;
 
-        public MainWindow()
+        public MainWindow(IApiWrapperBuilder instaApiBuilder)
         {
             InitializeComponent();
-            instaApi = new ApiWrapper.ApiWrapper();
+            this.instaApi = instaApiBuilder.CreateApi();
         }
 
         private async void LoginButton_Click(object sender, RoutedEventArgs e)
@@ -34,7 +35,7 @@ namespace InstagramDMSender
             
             if(isLoggedIn)
             {
-                userId = GetLoggedUserId();
+                loggedUser = await instaApi.GetLoggedInUserAsync();
                 LoginLabel.Content = $"Logged as {loggedUser.UserName}";
                 LoginLabel.Visibility = Visibility.Visible;
                 HideLoginItems();
@@ -46,50 +47,36 @@ namespace InstagramDMSender
             }
         }
 
-        private InstaUserShort GetLoggedUser()
-        {
-            return instaApi.GetLoggedUser().LoggedInUser;
-        }
-        private long GetLoggedUserId()
-        {
-            return GetLoggedUser().Pk;
-        }
         private void HideLoginItems()
         {
             LoginButton.Visibility = Visibility.Hidden;
             LoginText.Visibility = Visibility.Hidden;
             PasswordText.Visibility = Visibility.Hidden;
         }
-        
 
-        private async Task<IResult<InstaLoginResult>> Login(this IInstaApi instaApi)
-        {
-            return await instaApi.LoginAsync();
-        }
+        //private async void GetFollowersButton_Click(object sender, RoutedEventArgs e)
+        //{
+        //    GetFollowersButton.IsEnabled = false;
+        //    var followers = instaApi.GetFollowers(loggedUser.UserId);
 
-        private async void GetFollowersButton_Click(object sender, RoutedEventArgs e)
-        {
-            GetFollowersButton.IsEnabled = false;
-            var followers = await GetFollowers(userId);
+        //    FollowersList.ItemsSource = followers.Value;
+        //    FollowersList.DisplayMemberPath = "FullName";
+        //    GetFollowersButton.IsEnabled = true;
+        //}
 
-            FollowersList.ItemsSource = followers.Value;
-            FollowersList.DisplayMemberPath = "FullName";
-            GetFollowersButton.IsEnabled = true;
-        }
+        //private long GetUserId()
+        //{
+        //    if (FollowersList.SelectedItem == null)
+        //        return userId;
+        //    return ((KeyValuePair<string, long>)FollowersList.SelectedItem).Value;
+        //}
 
-        private long GetUserId()
-        {
-            if (FollowersList.SelectedItem == null)
-                return userId;
-            return ((KeyValuePair<string, long>)FollowersList.SelectedItem).Value;
-        }
+        //private async Task<IResult<InstaUserShortList>> GetFollowers(long userId)
+        //{
+        //    var paginationParameters = PaginationParameters.Empty;
+        //    //var followers = await instaApi.UserProcessor.GetUserFollowersByIdAsync(userId, paginationParameters);
 
-        private async Task<IResult<InstaUserShortList>> GetFollowers(long userId)
-        {
-            var paginationParameters = PaginationParameters.Empty;
-            var followers = await instaApi.UserProcessor.GetUserFollowersByIdAsync(userId, paginationParameters);
-
-            return followers;
-        }
+        //    //return followers;
+        //}
     }
 }

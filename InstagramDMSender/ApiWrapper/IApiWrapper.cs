@@ -7,9 +7,10 @@ namespace InstagramDMSender.ApiWrapper
     public interface IApiWrapper
     {
         Task<bool> LoginAsync(string userName, string password);
-        User GetUser(long userId);
-        User GetLoggedInUser();
-        IEnumerable<User> GetFollowers(long userId);
-        IEnumerable<User> GetFollowersForLoggedInUser();
+        Task<User> GetUserByIdAsync(long userId);
+        Task<User> GetUserByNameAsync(string userName);
+        Task<User> GetLoggedInUserAsync();
+        Task<IEnumerable<User>> GetFollowersAsync(long userId);
+        Task<IEnumerable<User>> GetFollowersForLoggedInUserAsync();
     }
 }
