@@ -12,5 +12,9 @@ namespace InstagramDMSender.ApiWrapper
         Task<User> GetLoggedInUserAsync();
         Task<IEnumerable<User>> GetFollowersAsync(long userId);
         Task<IEnumerable<User>> GetFollowersForLoggedInUserAsync();
+        Task SaveLoginData();
+        Task<bool> LoadLoginData();
+        Task Logout();
+        Task SendMessage(IEnumerable<long> recieversIds, string message, long senderId);
     }
 }

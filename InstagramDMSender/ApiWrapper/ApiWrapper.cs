@@ -1,16 +1,18 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
+using System.Text;
 using System.Threading.Tasks;
 using AutoMapper;
 using InstagramApiSharp.API;
-using InstagramApiSharp.Classes;
 using InstagramDMSender.Models;
 
 namespace InstagramDMSender.ApiWrapper
 {
     public class ApiWrapper : IApiWrapper
     {
+        private const string SESSION_FILE_NAME = "InstaSession.tmp";
         private IInstaApi instaApi;
         private IMapper mapper;
 
@@ -74,6 +76,46 @@ namespace InstagramDMSender.ApiWrapper
             var loginResponse = await instaApi.LoginAsync();
 
             return loginResponse.Succeeded;
+        }
+
+        public async Task SaveLoginData()
+        {
+            var fileStream = File.Create(Path.GetFullPath(SESSION_FILE_NAME));
+            var sessiondata = instaApi.GetStateDataAsString();
+            var bytesToSave = UTF8Encoding.UTF8.GetBytes(sessiondata);
+            await fileStream.WriteAsync(bytesToSave, 0, bytesToSave.Length);
+            fileStream.Close();
+        }
+
+        public async Task<bool> LoadLoginData()
+        {
+            if (!File.Exists(Path.GetFullPath(SESSION_FILE_NAME)))
+                return false;
+            var fileStream = File.OpenText(Path.GetFullPath(SESSION_FILE_NAME));
+            var sessionData = await fileStream.ReadToEndAsync();
+            fileStream.Close();
+            instaApi.LoadStateDataFromString(sessionData);
+            if(instaApi.IsUserAuthenticated)
+            {
+                return true;
+            }
+            return false;
+        }
+
+        public async Task Logout()
+        {
+            await instaApi.LogoutAsync();
+            DeleteSessionData();
+        }
+
+        private void DeleteSessionData()
+        {
+            File.Delete(Path.GetFullPath(SESSION_FILE_NAME));
+        }
+
+        public Task SendMessage(IEnumerable<long> recieversIds, string message, long senderId)
+        {
+            throw new NotImplementedException();
         }
     }
 }
